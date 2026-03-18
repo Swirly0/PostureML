@@ -100,10 +100,13 @@ class PostureEngine(QtCore.QObject):
     @QtCore.Slot(float, float, float)
     def set_calibrated_thresholds(self, gap: float, z: float, tilt: float) -> None:
         with self._lock:
-            self._cfg.calibrated_thresholds = Thresholds(gap=float(gap), z=float(z), tilt=float(tilt))
+            calibrated = Thresholds(gap=float(gap), z=float(z), tilt=float(tilt))
+            self._cfg.calibrated_thresholds = calibrated
+            # Keep manual defaults in sync with calibration so users can tweak from baseline.
+            self._cfg.manual_thresholds = calibrated
             self._cfg.is_calibrated = True
-            if not self._cfg.use_manual_thresholds:
-                self._thresholds = effective_thresholds(self._cfg)
+            # Refresh active thresholds regardless of mode since manual defaults may change.
+            self._thresholds = effective_thresholds(self._cfg)
             save_config(self._cfg)
 
     @QtCore.Slot()

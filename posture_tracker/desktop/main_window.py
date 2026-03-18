@@ -38,6 +38,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self._overlay.hide()
         event.accept()
 
+    def _graceful_quit(self) -> None:
+        self._engine.stop()
+        self._overlay.hide()
+        QtCore.QTimer.singleShot(0, self.close)
+
     def _build_ui(self) -> None:
         central = QtWidgets.QWidget(self)
         self.setCentralWidget(central)
@@ -82,10 +87,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._btn_start = QtWidgets.QPushButton("Start", controls)
         self._btn_stop = QtWidgets.QPushButton("Stop", controls)
+        self._btn_quit = QtWidgets.QPushButton("Quit", controls)
         self._btn_stop.setEnabled(False)
         row = QtWidgets.QHBoxLayout()
         row.addWidget(self._btn_start)
         row.addWidget(self._btn_stop)
+        row.addWidget(self._btn_quit)
         form.addRow(row)
 
         self._chk_preview = QtWidgets.QCheckBox("Show preview", controls)
@@ -112,6 +119,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._btn_start.clicked.connect(self._engine.start)
         self._btn_stop.clicked.connect(self._engine.stop)
+        self._btn_quit.clicked.connect(self._graceful_quit)
         self._btn_settings.clicked.connect(self._show_settings)
         self._chk_preview.toggled.connect(self._engine.set_show_preview)
 
