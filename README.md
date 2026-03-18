@@ -58,49 +58,5 @@ This includes:
    python main.py
    ```
 
-## Build a Windows EXE (PyInstaller)
 
-This repo includes a helper script for consistent builds:
-
-```powershell
-.\build_exe.ps1
-```
-
-The expected output is:
-
-- `dist/SmartPostureTracker.exe`
-
-If you prefer to run PyInstaller directly:
-
-```powershell
-python -m PyInstaller --noconfirm --clean SmartPostureTracker.spec
-```
-
-## GitHub Actions (CI/CD) for automatic EXE builds
-
-This repo includes a workflow at:
-
-- `.github/workflows/build-windows-exe.yml`
-
-How it works:
-
-- When you push a tag that matches `v*`, GitHub Actions builds the EXE on Windows.
-- The workflow uploads the `.exe` to the workflow artifact and (for `v*` tags) attaches it to the corresponding GitHub Release.
-
-### Recommended release flow
-
-1. Commit your changes and push them to GitHub.
-2. Create a tag (for example):
-
-   ```powershell
-   git tag v0.1.0
-   git push origin v0.1.0
-   ```
-
-3. Ensure a GitHub Release exists for that tag (or create one once in the GitHub UI).
-4. Download `SmartPostureTracker.exe` from the Release Assets (or Actions artifacts).
-
-## Troubleshooting
-
-- If the EXE fails to run due to MediaPipe missing modules, rebuild with the included spec (or ensure you use the spec/CI workflow rather than a minimal PyInstaller command).
 
