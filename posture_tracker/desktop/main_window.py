@@ -31,7 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._apply_overlay_position()
         # Start posture tracking automatically on launch
-        QtCore.QTimer.singleShot(0, self._engine.start)
+        QtCore.QTimer.singleShot(0, self._start_engine)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # noqa: N802
         self._engine.stop()
@@ -42,6 +42,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self._engine.stop()
         self._overlay.hide()
         QtCore.QTimer.singleShot(0, self.close)
+
+    def _start_engine(self) -> None:
+        if self._cfg.show_preview:
+            self._set_preview_message("Starting…")
+        self._engine.start()
+
+    def _stop_engine(self) -> None:
+        # Hide overlay immediately (stop is async).
+        self._overlay.hide()
+        self._overlay_was_active = False
+        self._engine.stop()
+
+    def _set_preview_message(self, text: str) -> None:
+        # QLabel shows the pixmap over the text, so we must clear it.
+        self._preview.setPixmap(QtGui.QPixmap())
+        self._preview.setText(text)
 
     def _build_ui(self) -> None:
         central = QtWidgets.QWidget(self)
@@ -57,7 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._preview.setMinimumSize(520, 360)
         self._preview.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self._preview.setStyleSheet("background:#111; color:#ddd; border-radius:8px;")
-        self._preview.setText("Preview disabled")
+        self._set_preview_message("Preview disabled")
         left.addWidget(self._preview, 1)
 
         status_row = QtWidgets.QHBoxLayout()
@@ -117,11 +133,11 @@ class MainWindow(QtWidgets.QMainWindow):
         act_quit.triggered.connect(self.close)
         menu.addAction(act_quit)
 
-        self._btn_start.clicked.connect(self._engine.start)
-        self._btn_stop.clicked.connect(self._engine.stop)
+        self._btn_start.clicked.connect(self._start_engine)
+        self._btn_stop.clicked.connect(self._stop_engine)
         self._btn_quit.clicked.connect(self._graceful_quit)
         self._btn_settings.clicked.connect(self._show_settings)
-        self._chk_preview.toggled.connect(self._engine.set_show_preview)
+        self._chk_preview.toggled.connect(self._on_preview_toggled)
 
         self._refresh_calibration_banner()
 
@@ -137,6 +153,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def _on_running(self, running: bool) -> None:
         self._btn_start.setEnabled(not running)
         self._btn_stop.setEnabled(running)
+        if not running:
+            self._set_preview_message("Stopped")
+
+    def _on_preview_toggled(self, enabled: bool) -> None:
+        self._engine.set_show_preview(bool(enabled))
+        if not enabled:
+            self._set_preview_message("Preview disabled")
+        elif self._btn_stop.isEnabled():
+            # Engine is running; show something until next frame arrives.
+            self._set_preview_message("Starting…")
 
     def _on_error(self, msg: str) -> None:
         QtWidgets.QMessageBox.critical(self, "Error", msg)
@@ -165,7 +191,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _on_frame(self, frame: EngineFrame) -> None:
         if not self._cfg.show_preview:
-            self._preview.setText("Preview disabled")
+            self._set_preview_message("Preview disabled")
             return
         img = bgr_to_qimage(frame.bgr)
         if img is None:
